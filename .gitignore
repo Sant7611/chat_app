@@ -1,1 +1,23 @@
 venv
+__pycache__/**/*
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python byte-code / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables / secrets
+.env
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# IDE / editor specific
+.vscode/
+.idea/
