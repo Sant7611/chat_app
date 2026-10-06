@@ -1,6 +1,6 @@
 from rest_framework.generics import ListCreateAPIView
-from chat.models import Conversation
-from chat.serializers.conversation_serializer import ConversationCreateSerializer, ConversastionSerializer
+from apps.chat.models import Conversation
+from apps.chat.serializers.conversation_serializer import ConversationCreateSerializer, ConversastionSerializer
 
 
 class ConversastionView(ListCreateAPIView):

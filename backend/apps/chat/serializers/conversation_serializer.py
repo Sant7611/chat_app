@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from chat.models import Conversation
+from apps.chat.models import Conversation
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
