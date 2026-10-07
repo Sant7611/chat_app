@@ -6,8 +6,6 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(trim_whitespace=False, write_only=True)
 
 
-    class Meta:
-        fields = ['email', 'password']
     
     def validate(self, attrs):
         email = attrs.get('email')

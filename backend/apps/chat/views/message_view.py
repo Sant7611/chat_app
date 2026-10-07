@@ -25,6 +25,6 @@ class MessageView(ModelViewSet):
         conversation_id = self.kwargs['conversation_id']
         user = self.request.user
         
-        conversation = get_object_or_404(Conversation, id=conversation_id,participant=user )
+        conversation = get_object_or_404(Conversation, id=conversation_id,participants=user )
         
         serializer.save(conversation=conversation, sender=user)

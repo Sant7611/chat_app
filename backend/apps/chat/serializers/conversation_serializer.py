@@ -23,14 +23,14 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         if request.user.id == value:
             raise serializers.ValidationError("You cannot have conversation with yourself")
 
-        if not Conversation.objects.get(id=value).exists():
+        if not User.objects.filter(id=value).exists():
             raise serializers.ValidationError("No User with that ID")
         
         return value
     
     def create(self, validated_data):
         user = self.context['request'].user
-        other_user_id = validated_data.pop['other_user_id']
+        other_user_id = validated_data.pop('other_user_id')
         other_user = User.objects.get(id=other_user_id)
         
         conversation = Conversation.objects.create()
