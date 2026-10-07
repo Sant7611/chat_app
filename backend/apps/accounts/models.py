@@ -17,3 +17,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=True)
     role = models.CharField(max_length=30, blank=True)
+    
+    
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ['username']
