@@ -33,6 +33,10 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         other_user_id = validated_data.pop('other_user_id')
         other_user = User.objects.get(id=other_user_id)
         
+        conversation = Conversation.objects.filter(participants=other_user_id).filter(participants=user).distinct().first()
+        if conversation:
+            return conversation
+        
         conversation = Conversation.objects.create()
         
         conversation.participants.add(user, other_user)

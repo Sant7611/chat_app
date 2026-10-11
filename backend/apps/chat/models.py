@@ -8,6 +8,8 @@ class Conversation(BaseModel):
         settings.AUTH_USER_MODEL, related_name="conversations"
     )
     
+
+    
     def __str__(self):
         participants = ",".join([user.username for user in self.participants.all()])
         return participants
