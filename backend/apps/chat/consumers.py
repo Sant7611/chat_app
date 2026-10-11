@@ -35,14 +35,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if text_data is None:
             return
 
+
         try:
             data = json.loads(text_data)
-            message = data["message"]
+            
+            if not isinstance(data, dict):
+                return
+            
+
         except json.JSONDecodeError:
             return
 
-        if not isinstance(data, dict):
-            return
+        message = data["message"]
 
         if not isinstance(message, str):
             return
@@ -57,6 +61,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 f'user_{participant}',
                 {
                     "type": "send.message",
+                    "id": msg.id,
                     "conversation_id":msg.conversation_id,
                     "message": msg.content,
                     "sender_id": str(msg.sender_id),

@@ -10,6 +10,7 @@ class Conversation(BaseModel):
     
     def __str__(self):
         participants = ",".join([user.username for user in self.participants.all()])
+        return participants
 
 
 class Message(BaseModel):
