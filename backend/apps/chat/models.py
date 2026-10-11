@@ -7,6 +7,9 @@ class Conversation(BaseModel):
     participants = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="conversations"
     )
+    
+    def __str__(self):
+        participants = ",".join([user.username for user in self.participants.all()])
 
 
 class Message(BaseModel):

@@ -6,10 +6,11 @@ from .models import Conversation, Message
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
-
-        if self.user.is_anonymous:
+        
+        if not self.user.is_authenticated:
             await self.close()
             return
+
 
         self.conversation_id = self.scope["url_route"]["kwargs"]["conversation_id"]
 
@@ -21,7 +22,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        self.group_name = f"chat_{self.conversation_id}"
+        self.group_name = f"user_{self.user.pk}"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
 
@@ -50,22 +51,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
             conversation_id=self.conversation_id, sender=self.user, content=message
         )
 
-        await self.channel_layer.group_send(
-            self.group_name,
-            {
-                "type": "send.message",
-                "id":msg.id,
-                "message": msg.content,
-                "sender_id": str(msg.sender_id),
-                "created_at": msg.created_at.isoformat( ),
-            },
-        )
+        participant_ids = Conversation.objects.filter(conversation_id=self.conversation_id).values_list("participants__ids", flat=True)
+        async for participant in participant_ids:
+            await self.channel_layer.group_send(
+                f' user_{participant}',
+                {
+                    "type": "send.message",
+                    "conversation_id":msg.conversation_id,
+                    "message": msg.content,
+                    "sender_id": str(msg.sender_id),
+                    "created_at": msg.created_at.isoformat( ),
+                },
+            )
 
     async def send_message(self, event):
         await self.send(
             text_data=json.dumps(
                 {
                     "id": event["id"],
+                    "conversation_id":event["conversation_id"],
                     "message": event["message"],
                     "sender_id": event["sender_id"],
                     "created_at": event["created_at"],

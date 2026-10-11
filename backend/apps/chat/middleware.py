@@ -20,13 +20,13 @@ def get_user_id(token):
 
 class JWTAuthMiddleware:
 
-    async def __init__(self, app):
+    def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
         query_string = scope.get("query_string", b"").decode()
         token = parse_qs(query_string).get("token", [None])[0]
 
-        scope["user"] = get_user_id(token) if token else AnonymousUser()
+        scope["user"] = await get_user_id(token) if token else AnonymousUser()
 
-        return await self.ap(scope, receive, send)
+        return await self.app(scope, receive, send)

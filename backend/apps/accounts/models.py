@@ -4,8 +4,6 @@ import uuid
 
 # Create your models here.
 class User(AbstractUser):
-    class Role_Choices:
-        pass
     
     
     id = models.UUIDField(
@@ -16,8 +14,10 @@ class User(AbstractUser):
     display_name = models.CharField(max_length=30, blank=True)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=True)
-    role = models.CharField(max_length=30, blank=True)
     
     
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ['username']
+    
+    def __str__(self):
+        return self.username
