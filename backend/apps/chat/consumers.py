@@ -51,10 +51,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             conversation_id=self.conversation_id, sender=self.user, content=message
         )
 
-        participant_ids = Conversation.objects.filter(conversation_id=self.conversation_id).values_list("participants__ids", flat=True)
+        participant_ids = Conversation.objects.filter(id=self.conversation_id).values_list("participants__id", flat=True)
         async for participant in participant_ids:
             await self.channel_layer.group_send(
-                f' user_{participant}',
+                f'user_{participant}',
                 {
                     "type": "send.message",
                     "conversation_id":msg.conversation_id,
