@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.chat.models import Conversation
 from django.contrib.auth import get_user_model
+from apps.chat.services.conversation_services import get_or_create_conversation
 
 User = get_user_model()
 
@@ -33,14 +34,7 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         other_user_id = validated_data.pop('other_user_id')
         other_user = User.objects.get(id=other_user_id)
         
-        conversation = Conversation.objects.filter(participants=other_user_id).filter(participants=user).distinct().first()
-        if conversation:
-            return conversation
-        
-        conversation = Conversation.objects.create()
-        
-        conversation.participants.add(user, other_user)
-        
+        conversation = get_or_create_conversation(user, other_user)
         return conversation
     
     

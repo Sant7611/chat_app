@@ -1,7 +1,9 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Conversation, Message
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -41,12 +43,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
             if not isinstance(data, dict):
                 return
-            
-
+        
         except json.JSONDecodeError:
             return
 
         message = data["message"]
+        
+        if len(message) > 1000:
+            await self.send(json.dumps({"error": "Message too long"}))
+            return
+        
+        if len(message) < 5:
+            await self.send(json.dumps({"error": "Message too short"}))
+            return
 
         if not isinstance(message, str):
             return
@@ -55,7 +64,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             conversation_id=self.conversation_id, sender=self.user, content=message
         )
 
-        participant_ids = Conversation.objects.filter(id=self.conversation_id).values_list("participants__id", flat=True)
+        participant_ids = User.objects.filter(conversations__id=self.conversation_id).exclude(id=self.user.pk).values_list("pk", flat=True)
         async for participant in participant_ids:
             await self.channel_layer.group_send(
                 f'user_{participant}',
@@ -83,7 +92,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, code_code):
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
+        if hasattr(self, self.group_name):
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name
+            )

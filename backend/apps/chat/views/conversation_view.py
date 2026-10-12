@@ -1,11 +1,12 @@
 from rest_framework.generics import ListCreateAPIView
 from apps.chat.models import Conversation
+from rest_framework.permissions import IsAuthenticated
 from apps.chat.serializers.conversation_serializer import ConversationCreateSerializer, ConversastionSerializer
 
 
 class ConversastionView(ListCreateAPIView):
     
-    
+    permission_classes = [IsAuthenticated]
     
     
     
