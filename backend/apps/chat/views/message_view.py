@@ -3,7 +3,7 @@ from apps.chat.serializers.message_serializer import MessageSerializer, MessageC
 from apps.chat.models import Message, Conversation
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
-
+from apps.chat.services.message_services import create_message
 
 
 
@@ -26,8 +26,4 @@ class MessageView(ModelViewSet):
     
     def perform_create(self, serializer):
         conversation_id = self.kwargs['conversation_id']
-        user = self.request.user
-        
-        conversation = get_object_or_404(Conversation, id=conversation_id,participants=user )
-        
-        serializer.save(conversation=conversation, sender=user)
+        serializer.save(conversation_id=conversation_id, sender=self.request.user)

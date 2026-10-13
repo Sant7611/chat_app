@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from apps.chat.models import Message
 from apps.chat.serializers.conversation_serializer import UserMiniSerializer
+from apps.chat.services.message_services import create_message
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserMiniSerializer(read_only=True)
@@ -23,3 +24,6 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         if value == '':
             raise serializers.ValidationError("Message cannot be empty")
         return value
+    
+    def create(self, validated_data):
+        create_message(**validated_data)
