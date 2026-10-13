@@ -2,17 +2,20 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Conversation, Message
 from django.contrib.auth import get_user_model
+from channels.db import database_sync_to_async
+from apps.chat.services.message_services import create_message
+from django.http import Http404
 
 User = get_user_model()
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
-        
+
         if not self.user.is_authenticated:
             await self.close()
             return
-
 
         self.conversation_id = self.scope["url_route"]["kwargs"]["conversation_id"]
 
@@ -37,44 +40,55 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if text_data is None:
             return
 
-
         try:
             data = json.loads(text_data)
-            
+
             if not isinstance(data, dict):
                 return
-        
+
         except json.JSONDecodeError:
             return
-
-        message = data["message"]
-        
-        if len(message) > 1000:
-            await self.send(json.dumps({"error": "Message too long"}))
-            return
-        
-        if len(message) < 5:
-            await self.send(json.dumps({"error": "Message too short"}))
-            return
+        message = data.get("message")
 
         if not isinstance(message, str):
+            await self.send(text_data=json.dumps({"error": "Message must be a string"}))
             return
 
-        msg = await Message.objects.acreate(
-            conversation_id=self.conversation_id, sender=self.user, content=message
-        )
+        message = message.strip()
 
-        participant_ids = User.objects.filter(conversations__id=self.conversation_id).exclude(id=self.user.pk).values_list("pk", flat=True)
+        if not message:
+            await self.send(text_data=json.dumps({"error": "Message cannot be empty"}))
+            return
+
+        if len(message) > 1000:
+            await self.send(text_data=json.dumps({"error": "Message too long"}))
+            return
+
+        try:
+            msg = await database_sync_to_async(create_message)(
+                conversation_id=self.conversation_id, sender=self.user, content=message
+            )
+        except Http404:
+
+            await self.send({"error": "No conversation found"})
+            await self.close(code=4403)
+            return
+
+        participant_ids = (
+            User.objects.filter(conversations__id=self.conversation_id)
+            .exclude(id=self.user.pk)
+            .values_list("pk", flat=True)
+        )
         async for participant in participant_ids:
             await self.channel_layer.group_send(
-                f'user_{participant}',
+                f"user_{participant}",
                 {
                     "type": "send.message",
                     "id": msg.id,
-                    "conversation_id":msg.conversation_id,
+                    "conversation_id": msg.conversation_id,
                     "message": msg.content,
                     "sender_id": str(msg.sender_id),
-                    "created_at": msg.created_at.isoformat( ),
+                    "created_at": msg.created_at.isoformat(),
                 },
             )
 
@@ -83,7 +97,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             text_data=json.dumps(
                 {
                     "id": event["id"],
-                    "conversation_id":event["conversation_id"],
+                    "conversation_id": event["conversation_id"],
                     "message": event["message"],
                     "sender_id": event["sender_id"],
                     "created_at": event["created_at"],
@@ -92,8 +106,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, code_code):
-        if hasattr(self, self.group_name):
-            await self.channel_layer.group_discard(
-                self.group_name,
-                self.channel_name
-            )
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)

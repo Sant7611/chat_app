@@ -26,4 +26,4 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        create_message(**validated_data)
+        return create_message(**validated_data)
