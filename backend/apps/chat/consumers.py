@@ -70,7 +70,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         except Http404:
 
-            await self.send({"error": "No conversation found"})
+            await self.send(text_data=json.dumps({"error": "No conversation found"}))
             await self.close(code=4403)
             return
 

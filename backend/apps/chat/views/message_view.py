@@ -1,13 +1,11 @@
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.generics import ListCreateAPIView
 from apps.chat.serializers.message_serializer import MessageSerializer, MessageCreateSerializer
-from apps.chat.models import Message, Conversation
-from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
-from apps.chat.services.message_services import create_message
+from apps.chat.models import Message
 
 
 
-class MessageView(ModelViewSet):
+class MessageView(ListCreateAPIView):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
     
