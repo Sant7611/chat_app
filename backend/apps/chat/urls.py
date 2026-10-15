@@ -3,11 +3,11 @@ from apps.chat.views import conversation_view, message_view, search_view
 from rest_framework.routers import DefaultRouter
 
 
-router = DefaultRouter()
-router.register('',message_view.MessageView, basename='messages')
+# router = DefaultRouter()
+# router.register('',message_view.MessageView, basename='messages')
 
 urlpatterns = [
     path('conversation/', conversation_view.ConversastionView.as_view(), name='conversation'),
-    path('conversation/<int:conversation_id>/messages/', include(router.urls)),
+    path('conversation/<int:conversation_id>/messages/', message_view.MessageView.as_view(), name='messages'),
     path('users/search/',search_view.UserSearchView.as_view(), name='users')
 ]

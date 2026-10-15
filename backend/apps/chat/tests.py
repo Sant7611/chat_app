@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from apps.chat.models import Conversation, Message
 from apps.chat.services.message_services import create_message
 from apps.chat.serializers.message_serializer import *
+from django.http import Http404
+from rest_framework.test import APIClient
+from django.urls import reverse
 
 User= get_user_model()
 
@@ -39,7 +42,7 @@ def test_message_valid_serializer():
     serializer = MessageCreateSerializer(data={'content':'     Hello heyyy    '})
     
     assert serializer.is_valid() is True
-    assert serializer.data['content'] == 'Hello heyyy'
+    assert serializer.validated_data['content'] == 'Hello heyyy'
     
 
 @pytest.mark.parametrize(
@@ -50,3 +53,55 @@ def test_empty_message(content):
     
     assert serializer.is_valid() is False
     assert 'content' in serializer.errors
+    
+    
+
+def test_unauthorized_user_cannot_send_message(chat_data):
+    #Arrange
+    ram, hari, conversation = chat_data
+    
+    outsider = User.objects.create_user(username='outsider', email='outsider@gmail.com', password='outsider123')
+    
+    #Act 
+    with pytest.raises(Http404):
+        create_message(conversation_id=conversation.id, content='Outsider message', sender=outsider)
+        
+    #Assert 
+    assert Message.objects.count() == 0
+    
+
+def test_message_nonexistent_conversation(chat_data):
+    #Arrange
+    ram, hari, conversation = chat_data
+    
+    outsider = User.objects.create_user(username='outsider', email='outsider@gmail.com', password='outsider123')
+    
+    #Act 
+    with pytest.raises(Http404):
+        create_message(conversation_id=conversation.id+288, content='Outsider message', sender=outsider)
+        
+    #Assert 
+    assert Message.objects.count() == 0
+    
+
+def test_participant_can_send_message_api(chat_data):
+    #Arrange
+    ram, hari, conversation = chat_data
+    
+    client = APIClient()
+    client.force_authenticate(user=ram)
+    
+    url = reverse('messages', kwargs={'conversation_id':conversation.id})
+    
+    #Act
+    response = client.post(url,{'content':'Hello hari this is ram'}, format='json')
+    
+    #Assert
+    
+    assert response.status_code == 201
+    
+    msg = Message.objects.get(conversation=conversation)
+    
+    
+    assert msg.content == 'Hello hari this is ram'
+    assert Message.objects.count() == 1
