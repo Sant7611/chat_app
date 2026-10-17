@@ -17,16 +17,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        self.conversation_id = self.scope["url_route"]["kwargs"]["conversation_id"]
-
-        is_participant = await Conversation.objects.filter(
-            participants=self.user, id=self.conversation_id
-        ).aexists()
-
-        if not is_participant:
-            await self.close()
-            return
-
         self.group_name = f"user_{self.user.pk}"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
@@ -49,6 +39,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except json.JSONDecodeError:
             return
         message = data.get("message")
+        conversation_id = data.get("conversation_id")
+
+        if type(conversation_id) is not int or conversation_id <= 0:
+            await self.send(
+                text_data=json.dumps({"error": "Valid conversation_id required"})
+            )
+
+            return
 
         if not isinstance(message, str):
             await self.send(text_data=json.dumps({"error": "Message must be a string"}))
@@ -66,16 +64,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         try:
             msg = await database_sync_to_async(create_message)(
-                conversation_id=self.conversation_id, sender=self.user, content=message
+                conversation_id=conversation_id, sender=self.user, content=message
             )
         except Http404:
 
             await self.send(text_data=json.dumps({"error": "No conversation found"}))
-            await self.close(code=4403)
+
             return
 
         participant_ids = (
-            User.objects.filter(conversations__id=self.conversation_id)
+            User.objects.filter(conversations__id=conversation_id)
             .exclude(id=self.user.pk)
             .values_list("pk", flat=True)
         )

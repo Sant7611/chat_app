@@ -179,3 +179,73 @@ def test_outsiders_cannot_read_private_messages(chat_data):
     
     assert response.status_code == 200
     assert response.data == []
+    
+
+def test_only_own_conversation_list_is_shown(chat_data):
+    ram, hari, conversation = chat_data
+    
+    sita = User.objects.create_user(username='sita', email='sita@gmail.com', password='sita')
+    
+    hari_sita_conversation = Conversation.objects.create()
+    hari_sita_conversation.participants.add(hari, sita)
+    
+    client = APIClient()
+    client.force_authenticate(user=ram)
+    
+    url = reverse('conversation')
+    response = client.get(url)
+    
+    
+    participant_ids = [
+        str(user["id"])
+        for user in response.data[0]["participants"]
+    ]
+
+    assert str(ram.id) in participant_ids
+    assert str(hari.id) in participant_ids
+    assert str(sita.id) not in participant_ids
+    assert len(response.data) == 1
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["id"] == conversation.id
+
+    
+def test_unauthenticated_user_doesnot_get_conversationlist(chat_data):
+    ram, _, _ = chat_data
+    
+    url = reverse('conversation')
+    
+    client = APIClient()
+    response = client.get(url)
+    
+    assert response.status_code == 401
+    
+def test_existing_user_search_includes_that_user(chat_data):
+    ram, hari, conversation = chat_data
+    
+    url = reverse('users')
+    
+    client = APIClient()
+    client.force_authenticate(user=ram)
+    
+    response = client.get(url, {'q':'hari@gmail.com'})
+    
+    search_ids = [str(user['id']) for user in response.data]
+    
+    assert str(hari.id) in search_ids
+    
+    
+def test_seaching_myself_excludes_on_result(chat_data):
+    ram, _, _ = chat_data
+    
+    url = reverse('users')
+    
+    client = APIClient()
+    client.force_authenticate(user=ram)
+    
+    response = client.get(url, {'q':'ram@gmail.com'})
+    
+    search_ids = [str(user['id']) for user in response.data]
+    
+    assert str(ram.id) not in search_ids  
+    assert response.status_code == 200
